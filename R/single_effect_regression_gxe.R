@@ -24,7 +24,7 @@ optimize_prior_variance = function (optimize_V, betahat, shat2, prior_weights,
       log_a = lV[1]
       log_c = lV[2]
       rho = lV[3]
-      
+
       a = exp(log_a)
       c = exp(log_c)
       b = rho * sqrt(a * c)
@@ -64,12 +64,13 @@ optimize_prior_variance = function (optimize_V, betahat, shat2, prior_weights,
 #
 #' @importFrom Matrix colSums
 #' @importFrom stats dnorm
+#' @importFrom mvtnorm dmvnorm
 loglik = function (lV, betahat, shat2, prior_weights) { # V is a vector
    p = length(betahat)/2
    log_a = lV[1]
    log_c = lV[2]
    rho = lV[3]
-   
+
    a = exp(log_a)
    c = exp(log_c)
    b = rho * sqrt(a * c)
@@ -79,7 +80,7 @@ loglik = function (lV, betahat, shat2, prior_weights) { # V is a vector
   #lbf = dnorm(betahat,0,sqrt(V + shat2),log = TRUE) -
   #      dnorm(betahat,0,sqrt(shat2),log = TRUE)
   lbf = mapply(function(i) {
-            mvtnorm::dmvnorm(betahat[c(i, i+p)], mean = rep(0,2), sigma = as.matrix((V+shat2[c(i, i+p), c(i, i+p)])), log = TRUE) - 
+            mvtnorm::dmvnorm(betahat[c(i, i+p)], mean = rep(0,2), sigma = as.matrix((V+shat2[c(i, i+p), c(i, i+p)])), log = TRUE) -
     	    mvtnorm::dmvnorm(betahat[c(i, i+p)], mean = rep(0,2), sigma = as.matrix((shat2[c(i, i+p), c(i, i+p)])), log = TRUE)
    	  }, 1:p)
   lpo = lbf + log(prior_weights + sqrt(.Machine$double.eps))
@@ -89,7 +90,7 @@ loglik = function (lV, betahat, shat2, prior_weights) { # V is a vector
   infinite_ind = unique(c(is.infinite(diag(shat2[1:p, 1:p])),
 			  is.infinite(diag(shat2[1:p, (p+1):(2*p)])),
 			  is.infinite(diag(shat2[(p+1):(2*p), (p+1):(2*p)]))))
-  lbf[c(infinite_ind, infinite_ind+p)] = 0 
+  lbf[c(infinite_ind, infinite_ind+p)] = 0
   lpo[c(infinite_ind, infinite_ind+p)] = 0
 
   maxlpo = max(lpo)

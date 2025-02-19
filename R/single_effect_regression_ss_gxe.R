@@ -1,14 +1,15 @@
-#' @rdname single_effect_regression
-#' 
+#' @title Single effect regression
+#'
 #' @param Xty A 2p-vector.
-#' 
+#'
 #' @param XtX_inv a return object of function S_inverse_crossprod
-#' 
+#'
 #' @importFrom stats uniroot
 #' @importFrom stats optim
+#' @importFrom mvtnorm dmvnorm
 #'
 #' @keywords internal
-#' 
+#'
 single_effect_regression_ss_gxe =
   function (Xty, XtX_inv, V = matrix(c(1, 0.5, 0.5, 1), ncol = 2), residual_variance = 1, prior_weights = NULL,
             optimize_V = c("none", "optim", "uniroot", "EM", "simple"),
@@ -23,7 +24,7 @@ single_effect_regression_ss_gxe =
   #shat2_list = lapply(1:p, function(i) {matrix(shat2_tmp[i, ], nrow = 2, byrow = TRUE)})
   shat2_mat = residual_variance*rbind(cbind(Diagonal(x = XtX_inv$dXtX), Diagonal(x = XtX_inv$dXtZ)),
                                   cbind(Diagonal(x = XtX_inv$dXtZ), Diagonal(x = XtX_inv$dZtZ)))
-  
+
   if (is.null(prior_weights))
     prior_weights = rep(1/p,p)
 
@@ -38,7 +39,7 @@ single_effect_regression_ss_gxe =
   # Load necessary libraries
 
   lbf = mapply(function(i) {
-            mvtnorm::dmvnorm(betahat[c(i, i+p)], mean = rep(0,2), sigma = as.matrix((V+shat2_mat[c(i, i+p), c(i, i+p)])), log = TRUE) - 
+            mvtnorm::dmvnorm(betahat[c(i, i+p)], mean = rep(0,2), sigma = as.matrix((V+shat2_mat[c(i, i+p), c(i, i+p)])), log = TRUE) -
     	    mvtnorm::dmvnorm(betahat[c(i, i+p)], mean = rep(0,2), sigma = as.matrix((shat2_mat[c(i, i+p), c(i, i+p)])), log = TRUE)
   	  }, 1:p)
   lpo = lbf + log(prior_weights + sqrt(.Machine$double.eps))
@@ -48,7 +49,7 @@ single_effect_regression_ss_gxe =
   infinite_ind = unique(c(is.infinite(residual_variance*XtX_inv$dXtX),
 			  is.infinite(residual_variance*XtX_inv$dXtZ),
 			  is.infinite(residual_variance*XtX_inv$dZtZ)))
-  lbf[c(infinite_ind, infinite_ind+p)] = 0 
+  lbf[c(infinite_ind, infinite_ind+p)] = 0
   lpo[c(infinite_ind, infinite_ind+p)] = 0
   maxlpo = max(lpo)
 
@@ -70,7 +71,7 @@ single_effect_regression_ss_gxe =
   #post_mean <- as.vector(t(post_mean_tmp1)) # X, Z, length of 2*p
   #post_mean2 = post_var + post_mean^2 # Second moment.
   #post_mean_2 = lapply(1:p, function(i) {tcrossprod(post_mean_tmp[[i]]) + post_var[[i]]})
-  
+
 
   V_spread = V %x% diag(p)
   shat2plusV = shat2_mat + V_spread

@@ -40,7 +40,7 @@ check_projection = function (A, b) {
 is_symmetric_matrix = function (x) {
   if (requireNamespace("Rfast",quietly = TRUE))
     return(Rfast::is.symmetric(x))
-  else 
+  else
     return(Matrix::isSymmetric(x))
 }
 
@@ -63,7 +63,7 @@ S_inverse_crossprod <- function(A, B, D, r, inv_only = FALSE) {
   r2 <- r[(length(A) + 1):length(r)]  # Bottom part of r (corresponding to B and D)
   # Compute the block inverse using element-wise operations
   M11 <- A_inv + A_inv * B * S_inv * B * A_inv  # Top-left block
-  M12 <- -A_inv * B * S_inv 
+  M12 <- -A_inv * B * S_inv
   M22 <- S_inv                                  # Bottom-right block
   # Construct the inverse block matrix M_inv
   # M_inv <- rbind(
@@ -73,12 +73,12 @@ S_inverse_crossprod <- function(A, B, D, r, inv_only = FALSE) {
   crossprod_top = crossprod_bottom = rep(0, length(A))
   if(!inv_only) {
     # Compute each part of the cross product without matrix multiplication
-    # Top part: A_inv * r1 + A_inv * B * S_inv * B * A_inv * r1 - A_inv * B * S_inv * r2 
+    # Top part: A_inv * r1 + A_inv * B * S_inv * B * A_inv * r1 - A_inv * B * S_inv * r2
     crossprod_top <- M11 * r1 + M12 * r2
     # Bottom part: -S_inv * B * A_inv * r1 + S_inv * r2
     crossprod_bottom <- M12 * r1 + M22 * r2
   }
-  
+
   return(list(dXtX = M11, dXtZ = M12, dZtZ = M22, Kty= c(crossprod_top, crossprod_bottom)))
 
 }
@@ -86,6 +86,9 @@ S_inverse_crossprod <- function(A, B, D, r, inv_only = FALSE) {
 # Subsample and compute min, mean, median and max abs corr.
 #
 #' @importFrom stats median
+#' @importFrom Rfast upper_tri
+#' @importFrom Rfast med
+#' @importFrom Rfast is.symmetric
 get_purity = function (pos, X, Xcorr, squared = FALSE, n = 100,
                        use_rfast) {
   if (missing(use_rfast))
@@ -119,7 +122,7 @@ get_purity = function (pos, X, Xcorr, squared = FALSE, n = 100,
   }
 }
 
-#' @rdname susie_get_methods
+#' @title Get credible sets
 #'
 #' @param X n by p matrix of values of the p variables (covariates) in
 #'   n samples. When provided, correlation between variables will be
@@ -242,7 +245,7 @@ susie_get_cs = function (res, X = NULL, Xcorr = NULL, coverage = 0.95,
   }
 }
 
-#' @rdname susie_get_methods
+#' @title Get PIPs
 #'
 #' @param prune_by_cs Whether or not to ignore single effects not in
 #'   a reported CS when calculating PIP.
@@ -260,7 +263,7 @@ susie_get_pip = function (res, prune_by_cs = FALSE, prior_tol = 1e-9) {
     if (!is.null(res$null_index) && res$null_index > 0)
       res$alpha = res$alpha[,-res$null_index,drop=FALSE]
 
-    # Drop the single-effects with estimated prior of zero.   
+    # Drop the single-effects with estimated prior of zero.
     if (is.numeric(unlist(res$V)))
       include_idx = which(unlist(lapply(res$V, function(x) {x[1,1] > prior_tol & x[2,2] > prior_tol})))
     else
@@ -330,10 +333,10 @@ in_CS = function (res, coverage = 0.9) {
 warning_message = function(..., style=c("warning", "hint")) {
   style = match.arg(style)
   if (style=="warning" && getOption("warn")>=0) {
-    alert <- crayon::combine_styles("bold", "underline", "red")	
+    alert <- crayon::combine_styles("bold", "underline", "red")
     message(alert("WARNING:"), " ", ...)
   } else {
-    alert <- crayon::combine_styles("bold", "underline", "magenta")	
+    alert <- crayon::combine_styles("bold", "underline", "magenta")
     message(alert("HINT:"), " ", ...)
   }
 }

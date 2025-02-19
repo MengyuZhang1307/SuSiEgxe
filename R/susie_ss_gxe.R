@@ -1,9 +1,9 @@
-#' @rdname susie
+#' @title susie_gxe
 #'
 #' @param XtX A p by p matrix \eqn{X'X}
-#'   
+#'
 #' @param XtZ A p by p matrix \eqn{X'Z}
-#'   
+#'
 #' @param ZtZ A p by p matrix \eqn{Z'Z}
 #'
 #' @param Xty A p-vector \eqn{X'y}
@@ -70,7 +70,7 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
   if (any(is.element(names(args),c("bhat","shat","R","var_y"))))
     stop("susie_suff_stat no longer accepts inputs bhat, shat, R or var_y; ",
          "these inputs are now accepted by susie_rss instead")
-    
+
   # Process input estimate_prior_method.
   estimate_prior_method = match.arg(estimate_prior_method)
 
@@ -114,7 +114,7 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
     ZtZ = ZtZ + t(ZtZ)
     ZtZ = ZtZ/2
   }
-  
+
   # MAF filter.
   if (!is.null(maf)) {
     if (length(maf) != length(Xty))
@@ -193,8 +193,8 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
     csd = rep(1,length = p*2)
 
   #I <- diag(p)
-  #diag_ind_mat <- kronecker(matrix(1, nrow = 2, ncol = 2), I) # 2x2 block matrix with 
-  #attr(KtK,"d") = KtK * diag_ind_mat 
+  #diag_ind_mat <- kronecker(matrix(1, nrow = 2, ncol = 2), I) # 2x2 block matrix with
+  #attr(KtK,"d") = KtK * diag_ind_mat
   attr(KtK,"dXtX") = diag(XtX)
   attr(KtK,"dXtZ") = diag(XtZ)
   attr(KtK,"dZtZ") = diag(ZtZ)
@@ -247,11 +247,11 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
   elbo = rep(as.numeric(NA),max_iter + 1)
   elbo[1] = -Inf;
   tracking = list()
-  
-  
+
+
 
   KtK_inv = S_inverse_crossprod(attr(KtK,"dXtX"), attr(KtK,"dXtZ"), attr(KtK,"dZtZ"), Xty)
-  
+
   bhat = KtK_inv$Kty
   #shat = cbind(sqrt(s$sigma2*KtK_inv$dXtX), sqrt(s$sigma2*KtK_inv$dZtZ))
   #if(length(bhat) != length(shat))
@@ -260,7 +260,7 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
   chisq_tmp = bhat * crossprod(attr(KtK,"dKtK"), bhat)/s$sigma2
   chisq = chisq_tmp[1:p]+chisq_tmp[(p+1):(2*p)]
   chisqm = max(abs(chisq[!is.nan(chisq)]))
-  
+
   Sys.time()
   for (i in 1:max_iter) {
     print(paste0("iter: ", i))
