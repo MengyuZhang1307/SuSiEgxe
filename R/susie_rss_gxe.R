@@ -190,9 +190,8 @@ susie_rss_gxe = function (z, R, n, bhat, bhat_gxe, shat, shat_gxe, covhat = NULL
 
   dS_inv = S_inverse_crossprod(shat^2, covhat, shat_gxe^2, c(bhat, bhat_gxe)) #block diag(S_inv), M_inv, and crossprod
 
-  #XtX = sqrt(tcrossprod(dS_inv$dXtX)) * R
-  XtX = R
-  XtZ = sqrt(tcrossprod(dS_inv$dXtZ)) * R
+  XtX = sqrt(tcrossprod(dS_inv$dXtX)) * R
+   XtZ = sqrt(tcrossprod(dS_inv$dXtZ)) * R
   ZtZ = sqrt(tcrossprod(dS_inv$dZtZ)) * R
 
 
