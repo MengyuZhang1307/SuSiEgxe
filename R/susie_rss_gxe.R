@@ -12,7 +12,7 @@
 #' and \code{Xty = dS_inv$Kty}, and with \code{residual_variance = 1}. The
 #' underlying assumption of performing the analysis in this way is
 #' that the sample size is large (\emph{i.e.}, infinity), and/or the
-#' effects are small. 
+#' effects are small.
 #'
 #' The \code{estimate_residual_variance} setting is \code{FALSE} by
 #' default, which is recommended when the LD matrix is estimated from
@@ -27,7 +27,7 @@
 #' @param bhat Alternative summary data giving the estimated effects
 #'   (a vector of length p). This, together with \code{shat},\code{shat_gxe},\code{bhat_gxe}, may be
 #'   provided instead of \code{z}.
-#'   
+#'
 #' @param bhat_gxe Alternative summary data giving the estimated effects
 #'   (a vector of length p). This, together with \code{bhat}, \code{shat},\code{shat_gxe}, \code{covhat}, may be
 #'   provided instead of \code{z}.
@@ -35,7 +35,7 @@
 #' @param shat Alternative summary data giving the standard errors of
 #'   the estimated effects (a vector of length p). This, together with
 #'   \code{bhat}, \code{bhat_gxe},\code{shat_gxe}, \code{covhat}, may be provided instead of \code{z}.
-#'   
+#'
 #' @param shat_gxe Alternative summary data giving the standard errors of
 #'   the estimated effects (a vector of length p). This, together with
 #'   \code{bhat}, \code{shat},\code{shat_gxe}, \code{covhat}, may be provided instead of \code{z}.
@@ -63,7 +63,7 @@
 #'   prior variance.
 #'
 #' @param estimate_residual_variance The default is FALSE, the
-#'   residual variance is fixed to 1 or variance of y. 
+#'   residual variance is fixed to 1 or variance of y.
 #'
 #' @param check_prior When \code{check_prior = TRUE}, it checks if the
 #'   estimated prior variance becomes unreasonably large (comparing with
@@ -190,11 +190,12 @@ susie_rss_gxe = function (z, R, n, bhat, bhat_gxe, shat, shat_gxe, covhat = NULL
 
   dS_inv = S_inverse_crossprod(shat^2, covhat, shat_gxe^2, c(bhat, bhat_gxe)) #block diag(S_inv), M_inv, and crossprod
 
-  XtX = sqrt(tcrossprod(dS_inv$dXtX)) * R
+  #XtX = sqrt(tcrossprod(dS_inv$dXtX)) * R
+  XtX = R
   XtZ = sqrt(tcrossprod(dS_inv$dXtZ)) * R
   ZtZ = sqrt(tcrossprod(dS_inv$dZtZ)) * R
 
-  
+
 
   # Call susie_suff_stat. We call susie_suff_stat in two different
   # ways depending on whether n is provided.
@@ -211,7 +212,7 @@ susie_rss_gxe = function (z, R, n, bhat, bhat_gxe, shat, shat_gxe, covhat = NULL
                         scaled_prior_variance = prior_variance,
                         estimate_residual_variance = estimate_residual_variance,
                         standardize = FALSE,check_prior = check_prior,...)
-  } else { 
+  } else {
     stop("n is not used")
     # The sample size (n) is provided, so use PVE-adjusted z-scores.
     if (!missing(shat) & !missing(var_y)) {

@@ -124,7 +124,7 @@ With the inputs \code{bhat}, \code{bhat_gxe}, \code{shat}, \code{shat_gxe}, and 
 and \code{Xty = dS_inv$Kty}, and with \code{residual_variance = 1}. The
 underlying assumption of performing the analysis in this way is
 that the sample size is large (\emph{i.e.}, infinity), and/or the
-effects are small. 
+effects are small.
 
 The \code{estimate_residual_variance} setting is \code{FALSE} by
 default, which is recommended when the LD matrix is estimated from
