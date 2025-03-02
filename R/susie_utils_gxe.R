@@ -86,9 +86,6 @@ S_inverse_crossprod <- function(A, B, D, r, inv_only = FALSE) {
 # Subsample and compute min, mean, median and max abs corr.
 #
 #' @importFrom stats median
-#' @importFrom Rfast upper_tri
-#' @importFrom Rfast med
-#' @importFrom Rfast is.symmetric
 get_purity = function (pos, X, Xcorr, squared = FALSE, n = 100,
                        use_rfast) {
   if (missing(use_rfast))

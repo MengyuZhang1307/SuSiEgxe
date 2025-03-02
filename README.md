@@ -9,8 +9,7 @@ SuSiEgxe is an R package for fine-mapping of 2df joint test in GEI meta-analysis
 SuSiEgxe imports R packages 
 [Matrix](https://cran.r-project.org/web/packages/Matrix/index.html),
 [crayon](https://cran.r-project.org/web/packages/crayon/index.html),
-[mvtnorm](https://cran.r-project.org/web/packages/mvtnorm/index.html),
-[Rfast](https://cran.r-project.org/web/packages/Rfast/index.html).
+[mvtnorm](https://cran.r-project.org/web/packages/mvtnorm/index.html).
 
 To install SuSiEgxe from GitHub, please use
 
