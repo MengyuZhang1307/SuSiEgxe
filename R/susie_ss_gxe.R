@@ -257,7 +257,7 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
   #if(length(bhat) != length(shat))
   #  stop("bhat does not match the lenght of shat before interation in susie_ss_gxe.R")
   #z = bhat/shat
-  chisq_tmp = bhat * crossprod(attr(KtK,"dKtK"), bhat)/s$sigma2
+  chisq_tmp = bhat * crossprod(attr(KtK,"dKtK"), as.matrix(bhat))/s$sigma2
   chisq = chisq_tmp[1:p]+chisq_tmp[(p+1):(2*p)]
   chisqm = max(abs(chisq[!is.nan(chisq)]))
 
