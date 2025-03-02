@@ -9,7 +9,7 @@
 #   variance, 'optim' or 'EM'.
 # @param check_null_threshold float a threshold on the log scale to
 #   compare likelihood between current estimate and zero the null
-# 
+#
 #' @importFrom Matrix diag
 update_each_effect_ss_gxe = function (XtX, XtX_inv, Xty, s_init,
                                   estimate_prior_variance = FALSE,
@@ -17,13 +17,13 @@ update_each_effect_ss_gxe = function (XtX, XtX_inv, Xty, s_init,
                                   check_null_threshold = 0) {
   if (!estimate_prior_variance)
     estimate_prior_method = "none"
-  
+
   # Repeat for each effect to update.
   s = s_init
   L = nrow(s$alpha)
   if (L > 0) {
     for (l in 1:L) {
-      message(paste0("L = ", l))
+      #message(paste0("L = ", l))
       # Remove lth effect from fitted values.
       s$XtXr = s$XtXr - XtX %*% (rep(s$alpha[l,], 2) * s$mu[l,])
 
@@ -32,7 +32,7 @@ update_each_effect_ss_gxe = function (XtX, XtX_inv, Xty, s_init,
       XtR = Xty - s$XtXr #length of 2p
       res = single_effect_regression_ss_gxe(as.matrix(XtR),XtX_inv,s$V[[l]],
               s$sigma2,s$pi,estimate_prior_method,check_null_threshold)
-      
+
       # Update the variational estimate of the posterior mean.
       s$mu[l,]    = as.vector(res$mu) # length = 2p
       s$alpha[l,] = res$alpha
