@@ -79,7 +79,7 @@ S_inverse_crossprod <- function(A, B, D, r, inv_only = FALSE) {
     crossprod_bottom <- M12 * r1 + M22 * r2
   }
 
-  return(list(dXtX = M11, dXtZ = M12, dZtZ = M22, Kty= c(crossprod_top, crossprod_bottom)))
+  return(list(dXtX = as.vector(M11), dXtZ = as.vector(M12), dZtZ = as.vector(M22), Kty= c(crossprod_top, crossprod_bottom)))
 
 }
 
