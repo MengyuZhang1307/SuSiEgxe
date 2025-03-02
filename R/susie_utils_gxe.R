@@ -27,7 +27,7 @@ check_projection = function (A, b) {
     attr(A,"eigen") = eigen(A,symmetric = TRUE)
   v = attr(A,"eigen")$values
   B = attr(A,"eigen")$vectors[,v > .Machine$double.eps]
-  msg = all.equal(as.vector(B %*% crossprod(B,b)),as.vector(b),
+  msg = all.equal(as.vector(as.matrix(B) %*% crossprod(as.matrix(B),as.vector(b))),as.vector(b),
                   check.names = FALSE)
   if (!is.character(msg))
     return(list(status = TRUE,msg = NA))
