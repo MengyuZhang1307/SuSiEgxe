@@ -247,8 +247,7 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
   elbo = rep(as.numeric(NA),max_iter + 1)
   elbo[1] = -Inf;
   tracking = list()
-
-
+  s$pip_tmp = rep(0, p)
 
   KtK_inv = S_inverse_crossprod(attr(KtK,"dXtX"), attr(KtK,"dXtZ"), attr(KtK,"dZtZ"), Xty)
 
@@ -287,10 +286,17 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
       stop('The objective becomes infinite. Please check the input.')
     }
 
-    if ((elbo[i+1] - elbo[i]) < tol) {
+    pip = susie_get_pip(s,prune_by_cs = FALSE,prior_tol = prior_tol)
+    if (max(abs(pip-s$pip_tmp)) < tol) {
       s$converged = TRUE
+      s$pip_tmp = NULL
       break
     }
+
+    #if ((elbo[i+1] - elbo[i]) < tol) {
+    #  s$converged = TRUE
+    #  break
+    #}
     if (estimate_residual_variance) { # TRUE for in-sample R
       est_sigma2 = estimate_residual_variance_ss(KtK,Xty,s,yty,n)
       if (est_sigma2 < 0)
