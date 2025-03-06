@@ -278,7 +278,8 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
     }
 
     if (verbose) # Need KL
-      print(paste0("objective: ",get_objective_ss_gxe(KtK,Xty,s,yty,n)))
+      {print(paste0("objective: ",get_objective_ss_gxe(KtK,Xty,s,yty,n)))
+       print(paste0("Max pip difference:", max_pip[i+1]))}
 
     # Compute objective before updating residual variance because part
     # of the objective s$kl has already been computed under the
