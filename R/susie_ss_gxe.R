@@ -276,7 +276,8 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
              Please check the input.')
       }
     }
-
+    pip = susie_get_pip(s,prune_by_cs = FALSE,prior_tol = prior_tol)
+    max_pip[i+1] = max(abs(pip-s$pip_tmp))
     if (verbose) # Need KL
       {print(paste0("objective: ",get_objective_ss_gxe(KtK,Xty,s,yty,n)))
        print(paste0("Max pip difference:", max_pip[i+1]))}
@@ -289,8 +290,6 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
       stop('The objective becomes infinite. Please check the input.')
     }
 
-    pip = susie_get_pip(s,prune_by_cs = FALSE,prior_tol = prior_tol)
-    max_pip[i+1] = max(abs(pip-s$pip_tmp))
     if (max_pip[i+1] < tol) {
       s$converged = TRUE
       s$pip_tmp = NULL
