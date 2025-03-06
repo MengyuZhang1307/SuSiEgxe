@@ -308,6 +308,7 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
       s$sigma2 = est_sigma2
       if (verbose)
         print(paste0("objective:",get_objective_ss(KtK,Xty,s,yty,n)))
+        print(paste0("Max pip difference:", max_pip[i+1]))
     }
   }
   Sys.time()
