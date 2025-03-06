@@ -246,6 +246,8 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
   # Initialize elbo to NA.
   elbo = rep(as.numeric(NA),max_iter + 1)
   elbo[1] = -Inf;
+  max_pip = rep(as.numeric(NA),max_iter + 1)
+  max_pip[1] = 1;
   tracking = list()
   s$pip_tmp = rep(0, p)
 
@@ -287,11 +289,12 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
     }
 
     pip = susie_get_pip(s,prune_by_cs = FALSE,prior_tol = prior_tol)
-    if (max(abs(pip-s$pip_tmp)) < tol) {
+    max_pip[i+1] = max(abs(pip-s$pip_tmp))
+    if (max_pip[i+1] < tol) {
       s$converged = TRUE
       s$pip_tmp = NULL
       break
-    }
+    } else {s$pip_tmp = pip}
 
     #if ((elbo[i+1] - elbo[i]) < tol) {
     #  s$converged = TRUE
@@ -310,6 +313,8 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
   Sys.time()
 
   elbo = elbo[2:(i+1)] # Remove first (infinite) entry, and trailing NAs.
+  max_pip = max_pip[2:(i+1)]
+  s$max_pip = max_pip
   s$elbo = elbo
   s$niter = i
 
