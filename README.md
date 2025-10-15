@@ -25,6 +25,9 @@ The current version is 0.1.0 (Feb 18, 2025).
 
 This software is licensed under GPL-3.
 
+## Preprints
+doi: https://doi.org/10.1101/2025.10.06.25337440
+
 ## Contact
 
 Please refer to the R help document of SuSiEgxe for specific questions about each function. 
