@@ -16,6 +16,9 @@ To install SuSiEgxe from GitHub, please use
 ```
 devtools::install_github("MengyuZhang1307/SuSiEgxe", ref = "main")
 ```
+## Example data
+
+There is an example data in `inst` folder. Instruction to run on data and expected output can be found in `example/scripts`.
 
 ## Version
 
