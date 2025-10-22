@@ -2,7 +2,6 @@ library(Matrix)
 library(mvtnorm)
 library(parallel)
 suppressMessages(library(optparse))
-setwd("proj/BP-smoking")
 devtools::install_github("MengyuZhang1307/SuSiEgxe", ref = "main")
 library(SuSiEgxe)
 
@@ -10,11 +9,12 @@ library(SuSiEgxe)
 
 #### Example 1: Fine-mapping with SuSiEgxe in cross population meta analysis (CPMA)
 # input parameters
-sumstatdir = "data/CMA.DBP.CURSMK.COMBINED.2df.2_26673079_26714801.rsid.txt"
-LDdir= "data/CMA.DBP.CURSMK.COMBINED.2df.2_26673079_26714801.LD_mat.txt"
-outrds = "data/CMA.DBP.CURSMK.COMBINED.2df.2_26673079_26714801.rds"
-L = 5
-beta = TRUE
+
+sumstatdir <- system.file("example/data", "CMA.DBP.CURSMK.COMBINED.2df.2_26673079_26714801.rsid.txt", package = "SuSiEgxe")
+LDdir <- system.file("example/data", "CMA.DBP.CURSMK.COMBINED.2df.2_26673079_26714801.LD_mat.txt", package = "SuSiEgxe")
+outrds <- "CMA.DBP.CURSMK.COMBINED.2df.2_26673079_26714801.rds"
+L <- 5
+beta <- TRUE
 print(beta)
 
 joined_data_p = data.table::fread(sumstatdir)
@@ -54,11 +54,11 @@ Sys.time()
 
 #### Example 1: Fine-mapping with SuSiEgxe in Eastern Asian ancestry (EAS)
 # input parameters
-sumstatdir = "data/EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.rsid.txt"
-LDdir= "data/EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.LD_mat.txt"
-outrds = "data/EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.rds"
-L = 5
-beta = TRUE
+sumstatdir <- system.file("example/data", "EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.rsid.txt", package = "SuSiEgxe")
+LDdir <- system.file("example/data", "EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.LD_mat.txt", package = "SuSiEgxe")
+outrds <- "EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.rds"
+L <- 5
+beta <- TRUE
 print(beta)
 
 joined_data_p = data.table::fread(sumstatdir)
