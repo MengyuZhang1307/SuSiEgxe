@@ -10,8 +10,8 @@ library(SuSiEgxe)
 #### Example 1: Fine-mapping with SuSiEgxe in cross population meta analysis (CPMA)
 # input parameters
 
-sumstatdir <- system.file("example/data", "CMA.DBP.CURSMK.COMBINED.2df.2_26673079_26714801.rsid.txt", package = "SuSiEgxe")
-LDdir <- system.file("example/data", "CMA.DBP.CURSMK.COMBINED.2df.2_26673079_26714801.LD_mat.txt", package = "SuSiEgxe")
+sumstatdir <- system.file("extdata", "CMA.DBP.CURSMK.COMBINED.2df.2_26673079_26714801.rsid.txt", package = "SuSiEgxe")
+LDdir <- system.file("extdata", "CMA.DBP.CURSMK.COMBINED.2df.2_26673079_26714801.LD_mat.txt", package = "SuSiEgxe")
 outrds <- "CMA.DBP.CURSMK.COMBINED.2df.2_26673079_26714801.rds"
 L <- 5
 beta <- TRUE
@@ -54,8 +54,8 @@ Sys.time()
 
 #### Example 1: Fine-mapping with SuSiEgxe in Eastern Asian ancestry (EAS)
 # input parameters
-sumstatdir <- system.file("example/data", "EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.rsid.txt", package = "SuSiEgxe")
-LDdir <- system.file("example/data", "EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.LD_mat.txt", package = "SuSiEgxe")
+sumstatdir <- system.file("extdata", "EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.rsid.txt", package = "SuSiEgxe")
+LDdir <- system.file("extdata", "EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.LD_mat.txt", package = "SuSiEgxe")
 outrds <- "EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.rds"
 L <- 5
 beta <- TRUE
