@@ -12,4 +12,5 @@ vignettes/*.R
 .httr-oauth
 .DS_Store
 .quarto
-/simulation/
+simulation/
+.gitignore
