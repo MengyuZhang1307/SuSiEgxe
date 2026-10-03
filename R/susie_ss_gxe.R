@@ -289,8 +289,8 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
 
   #Sys.time()
   for (i in 1:max_iter) {
-    if (verbose)
-      print(paste0("iter: ", i))
+    # if (verbose)
+    #   {cat(paste0("iter: ", i))}
     if (track_fit)
       tracking[[i]] = susie_slim(s)
     system.time({s = update_each_effect_ss_gxe(KtK,KtK_inv,Xty,s,estimate_prior_variance,
