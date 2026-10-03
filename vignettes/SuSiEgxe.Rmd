@@ -1,6 +1,8 @@
 ---
 title: "Fine-mapping a 2df joint test with SuSiEgxe"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    dev: !expr if (isTRUE(capabilities("cairo"))) "svg" else "pdf"
 vignette: >
   %\VignetteIndexEntry{Fine-mapping a 2df joint test with SuSiEgxe}
   %\VignetteEngine{knitr::rmarkdown}
@@ -23,6 +25,9 @@ matrix.
 This vignette walks through one complete analysis using the example data that
 ships with the package: diastolic blood pressure (DBP) and current smoking in an
 East Asian ancestry (EAS) meta-analysis, locus `2:26681997-26710019`.
+
+This vignette was built with SuSiEgxe version `r packageVersion("SuSiEgxe")`.
+See `NEWS.md` for the change history.
 
 ```{r setup}
 library(SuSiEgxe)
@@ -119,7 +124,7 @@ names(pip) <- summstats$refsnp_id
 head(sort(pip, decreasing = TRUE), 8)
 ```
 
-```{r pip-plot}
+```{r pip-plot, eval = isTRUE(capabilities("cairo"))}
 plot(pip, pch = 16, xlab = "Variant index", ylab = "PIP",
      main = "Posterior inclusion probabilities", ylim = c(0, 1))
 ```
@@ -153,3 +158,30 @@ summstats$refsnp_id[cs$cs[[1]]]
 
 The package also exports `susie_suff_stat_gxe()`, which accepts sufficient
 statistics (`XtX`, `XtZ`, `ZtZ`, `Xty`, ...) directly; see `?susie_suff_stat_gxe`.
+
+## Session information
+
+```{r session-info}
+sessionInfo()
+```
+
+## Version
+
+The current version is 0.1.1 (Oct 3, 2026).
+
+### Change log
+
+**Version 0.1.1 (Oct 3, 2026)**
+
+- Added this vignette.
+- Fixed a missing import of `Matrix::Diagonal()`. The model no longer requires
+  `library(Matrix)` to be attached first.
+- Added `knitr` and `rmarkdown` to `Suggests` for building the vignette, and
+  removed the unused `LazyData` field.
+
+**Version 0.1.0 (Feb 18, 2025)**
+
+- First release. `susie_rss_gxe()` and `susie_suff_stat_gxe()` fine-map
+  summary statistics from the 2df joint test in GEI meta-analysis with a binary
+  exposure. `susie_get_cs()` and `susie_get_pip()` extract credible sets and
+  posterior inclusion probabilities.
