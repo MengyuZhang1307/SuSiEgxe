@@ -27,6 +27,13 @@
 #' @param maf_thresh Variants having a minor allele frequency smaller
 #'   than this threshold are not used.
 #'
+#' @param tol Convergence tolerance. See \code{convergence_method}.
+#'
+#' @param convergence_method \code{"elbo"} (default, as in susieR) stops when
+#'   the objective (ELBO) increases by less than \code{tol} between two
+#'   iterations. \code{"pip"} stops when no posterior inclusion probability
+#'   changes by more than \code{tol}.
+#'
 #' @param r_tol Tolerance level for eigenvalue check of positive
 #'   semidefinite matrix of R.
 #'
@@ -61,6 +68,7 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
                             null_weight = 0, standardize = TRUE,
                             max_iter = 100, s_init = NULL, coverage = 0.95,
                             min_abs_corr = 0.5, tol = 1e-3,
+                            convergence_method = c("elbo","pip"),
                             verbose = FALSE, track_fit = FALSE,
                             check_input = FALSE, refine = FALSE,
                             check_prior = FALSE, n_purity = 100, ...) {
@@ -70,10 +78,20 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
   if (any(is.element(names(args),c("bhat","shat","R","var_y"))))
     stop("susie_suff_stat no longer accepts inputs bhat, shat, R or var_y; ",
          "these inputs are now accepted by susie_rss instead")
+  convergence_method = match.arg(convergence_method)
 
   # Process input estimate_prior_method.
   estimate_prior_method = match.arg(estimate_prior_method)
 
+  if (estimate_residual_variance)
+    stop("estimate_residual_variance = TRUE is not supported in this version; ",
+         "the residual variance is held fixed")
+  if (estimate_prior_variance && estimate_prior_method == "EM")
+    stop("estimate_prior_method = \"EM\" is not supported in this version; use \"optim\"")
+  if (!missing(s_init) && !is.null(s_init))
+    stop("s_init is not supported in this version")
+  if (refine)
+    stop("refine = TRUE is not supported in this version")
   if (missing(n))
     stop("n must be provided")
   if (n <= 1)
@@ -248,12 +266,19 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
   elbo[1] = -Inf;
   max_pip = rep(as.numeric(NA),max_iter + 1)
   max_pip[1] = 1;
+  elbo_decreased = FALSE
   tracking = list()
   s$pip_tmp = rep(0, p)
 
-  KtK_inv = S_inverse_crossprod(attr(KtK,"dXtX"), attr(KtK,"dXtZ"), attr(KtK,"dZtZ"), Xty)
+  # Per-SNP 2x2 inverses (Zj'Zj)^{-1}. These do not depend on y, so they are
+  # computed once and reused by every single-effect update.
+  KtK_inv = S_inverse_crossprod(attr(KtK,"dXtX"), attr(KtK,"dXtZ"), attr(KtK,"dZtZ"),
+                                Xty, inv_only = TRUE)
+  KtK_inv$Kty = NULL
 
-  bhat = KtK_inv$Kty
+  # Marginal estimates, used only for the check_prior threshold below.
+  bhat = c(KtK_inv$dXtX * Xty[1:p] + KtK_inv$dXtZ * Xty[p+(1:p)],
+           KtK_inv$dXtZ * Xty[1:p] + KtK_inv$dZtZ * Xty[p+(1:p)])
   #shat = cbind(sqrt(s$sigma2*KtK_inv$dXtX), sqrt(s$sigma2*KtK_inv$dZtZ))
   #if(length(bhat) != length(shat))
   #  stop("bhat does not match the lenght of shat before interation in susie_ss_gxe.R")
@@ -262,9 +287,10 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
   chisq = chisq_tmp[1:p]+chisq_tmp[(p+1):(2*p)]
   chisqm = max(abs(chisq[!is.nan(chisq)]))
 
-  Sys.time()
+  #Sys.time()
   for (i in 1:max_iter) {
-    print(paste0("iter: ", i))
+    if (verbose)
+      print(paste0("iter: ", i))
     if (track_fit)
       tracking[[i]] = susie_slim(s)
     system.time({s = update_each_effect_ss_gxe(KtK,KtK_inv,Xty,s,estimate_prior_variance,
@@ -290,28 +316,45 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
       stop('The objective becomes infinite. Please check the input.')
     }
 
-    if (max_pip[i+1] < tol) {
+    s$pip_tmp = pip
+
+    # Convergence. "elbo" is the criterion used by susieR: stop when the
+    # objective improves by less than tol. "pip" stops when no PIP changes
+    # by more than tol.
+    if (convergence_method == "elbo") {
+      if (i > 1 && (elbo[i+1] - elbo[i]) < -tol)
+        elbo_decreased = TRUE
+      if ((elbo[i+1] - elbo[i]) < tol) {
+        s$converged = TRUE
+        break
+      }
+    } else if (max_pip[i+1] < tol) {
       s$converged = TRUE
-      s$pip_tmp = NULL
       break
-    } else {s$pip_tmp = pip}
+    }
 
     #if ((elbo[i+1] - elbo[i]) < tol) {
     #  s$converged = TRUE
     #  break
     #}
-    if (estimate_residual_variance) { # TRUE for in-sample R
-      est_sigma2 = estimate_residual_variance_ss(KtK,Xty,s,yty,n)
-      if (est_sigma2 < 0)
-        stop("Estimating residual variance failed: the estimated value ",
-             "is negative")
-      s$sigma2 = est_sigma2
-      if (verbose)
-        print(paste0("objective:",get_objective_ss(KtK,Xty,s,yty,n)))
-        print(paste0("Max pip difference:", max_pip[i+1]))
-    }
+    # if (estimate_residual_variance) { # TRUE for in-sample R
+    #   est_sigma2 = estimate_residual_variance_ss(KtK,Xty,s,yty,n)
+    #   if (est_sigma2 < 0)
+    #     stop("Estimating residual variance failed: the estimated value ",
+    #          "is negative")
+    #   s$sigma2 = est_sigma2
+    #   if (verbose)
+    #     print(paste0("objective:",get_objective_ss(KtK,Xty,s,yty,n)))
+    #     print(paste0("Max pip difference:", max_pip[i+1]))
+    # }
   }
-  Sys.time()
+  #Sys.time()
+
+  s$pip_tmp = NULL
+  if (elbo_decreased)
+    warning_message(paste("The objective (ELBO) decreased during the IBSS updates.",
+                          "This usually indicates a mismatch between the summary",
+                          "statistics and the LD matrix; please check the input."))
 
   elbo = elbo[2:(i+1)] # Remove first (infinite) entry, and trailing NAs.
   max_pip = max_pip[2:(i+1)]
@@ -430,3 +473,7 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
 
   return(s)
 }
+
+# Slim copy of the fit kept at each iteration when track_fit = TRUE.
+susie_slim = function (s)
+  list(alpha = s$alpha, V = s$V, sigma2 = s$sigma2)

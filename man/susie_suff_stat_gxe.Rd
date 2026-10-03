@@ -32,6 +32,7 @@ susie_suff_stat_gxe(
   coverage = 0.95,
   min_abs_corr = 0.5,
   tol = 0.001,
+  convergence_method = c("elbo", "pip"),
   verbose = FALSE,
   track_fit = FALSE,
   check_input = FALSE,
@@ -71,6 +72,13 @@ than this threshold are not used.}
 
 \item{r_tol}{Tolerance level for eigenvalue check of positive
 semidefinite matrix of R.}
+
+\item{tol}{Convergence tolerance. See \code{convergence_method}.}
+
+\item{convergence_method}{\code{"elbo"} (default, as in susieR) stops when
+the objective (ELBO) increases by less than \code{tol} between two
+iterations. \code{"pip"} stops when no posterior inclusion probability
+changes by more than \code{tol}.}
 
 \item{check_input}{If \code{check_input = TRUE},
 \code{susie_suff_stat} performs additional checks on \code{XtX} and

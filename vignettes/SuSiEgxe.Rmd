@@ -20,18 +20,45 @@ summary statistics from the **2df joint test** in gene-by-environment (GxE)
 interaction meta-analysis with a **binary exposure**. For each variant it uses
 the main-effect estimate, the interaction-effect estimate, their standard
 errors, and the covariance between the two estimates, together with an LD
-matrix.
+matrix. Up to `L` independent signals can be fine-mapped in one locus, and each
+signal gets its own credible set.
 
 This vignette walks through one complete analysis using the example data that
 ships with the package: diastolic blood pressure (DBP) and current smoking in an
 East Asian ancestry (EAS) meta-analysis, locus `2:26681997-26710019`.
 
 This vignette was built with SuSiEgxe version `r packageVersion("SuSiEgxe")`.
-See `NEWS.md` for the change history.
+See the change log at the end for what changed between versions. Results
+produced with versions before 0.2.0 should be regenerated; see the entry for
+version 0.2.0.
 
 ```{r setup}
 library(SuSiEgxe)
 ```
+
+## Requirements on the input
+
+Three things must hold for the results to be meaningful.
+
+1. **The exposure is coded 0/1 and is not centered.** The way the package
+   rebuilds the sufficient statistics from summary statistics is derived for
+   this coding. With it, the covariance between the main-effect and the
+   interaction-effect estimates is negative at every variant, and
+   `susie_rss_gxe()` stops if any value of `covhat` is zero or positive. A
+   negative covariance is necessary but does not by itself prove that the
+   exposure is 0/1.
+2. **The LD matrix is a signed correlation matrix** (r, not r-squared and not
+   the absolute value of r), computed with the same effect-allele coding as the
+   summary statistics. When more than one signal is fitted, the sign of the
+   correlation between variants is used, and an unsigned matrix gives wrong
+   results.
+3. **The summary statistics and the LD matrix describe the same variants in
+   the same order**, on the same effect allele.
+
+In a meta-analysis, variants in one locus can have very different sample sizes
+and the LD matrix usually comes from a reference panel. Both can make a
+multi-signal fit unstable. The section "Check convergence" shows what to look
+at.
 
 ## Input data
 
@@ -78,18 +105,36 @@ stopifnot(nrow(summstats) == nrow(R))
 dim(R)
 ```
 
+## Check the input
+
+Check the two requirements that can be read off the data.
+
+```{r check-input}
+# 0/1 exposure: the covariance must be negative at every variant.
+all(summstats$IntCov < 0)
+
+# Under 0/1 coding the covariance is close to minus the main-effect variance,
+# so this ratio should be close to 1.
+summary(-summstats$IntCov / summstats$StdErr^2)
+
+# Signed LD: a signed correlation matrix has negative entries. A minimum of 0
+# means the matrix is r-squared or |r| and must be replaced before fitting
+# more than one signal.
+range(R[upper.tri(R)])
+```
+
 ## Run the model
 
 `susie_rss_gxe()` takes the five summary-statistic vectors and `R`. The prior
 for each single effect is a 2x2 matrix: the prior variance of the main effect
 and of the interaction effect on the diagonal, and their prior covariance off
 the diagonal. Here we use the same prior for each of `L = 5` effects and keep it
-fixed.
+fixed. `prior_variance` can be given as a single 2x2 matrix, which is then used
+for every effect, or as a list of `L` matrices.
 
 ```{r fit}
 L <- 5
-prior_var <- replicate(L, matrix(c(10, -0.02, -0.02, 10), ncol = 2),
-                       simplify = FALSE)
+prior_var <- matrix(c(10, -0.02, -0.02, 10), ncol = 2)
 
 fit <- susie_rss_gxe(
   R = R,
@@ -108,13 +153,47 @@ fit <- susie_rss_gxe(
   min_abs_corr = 0,
   verbose = FALSE
 )
-
-fit$converged
-fit$niter
 ```
 
-No sample size `n` is supplied, so the model assumes a large sample and small
-effects (the package prints a warning to that effect).
+Notes on the arguments:
+
+- `L` is the maximum number of signals. Effects that find no signal do not
+  produce a credible set. Setting `L = 1` gives single-signal fine-mapping,
+  which does not use the off-diagonal entries of `R`.
+- `estimate_residual_variance` must be `FALSE`. The residual variance is fixed
+  and absorbed into the summary statistics, and the function stops if it is set
+  to `TRUE`.
+- `estimate_prior_variance = TRUE` estimates the 2x2 prior of each effect from
+  the data instead of keeping it fixed.
+- No sample size `n` is supplied, so the model assumes a large sample and small
+  effects (the package prints a warning to that effect).
+
+## Check convergence
+
+By default the algorithm stops when the objective (ELBO) increases by less than
+`tol` between two iterations, as in susieR. Use `convergence_method = "pip"` to
+stop when no posterior inclusion probability changes by more than `tol`.
+
+```{r convergence}
+fit$converged
+fit$niter
+
+# The objective should never decrease.
+all(diff(fit$elbo) > -1e-6)
+```
+
+Treat the fit with caution if any of the following happens:
+
+- `fit$converged` is `FALSE` after `max_iter` iterations.
+- The package warns that the objective decreased.
+- The objective keeps growing by large amounts from one iteration to the next.
+- Several credible sets contain a single variant each, and those variants are
+  in high LD with one another.
+
+These usually mean that the summary statistics and the LD matrix are not
+consistent with each other: an unsigned or misaligned LD matrix, a reference
+panel that does not match the study population, or variants with very
+different sample sizes within the locus.
 
 ## Posterior inclusion probabilities
 
@@ -142,6 +221,13 @@ cs$purity
 cs$coverage
 ```
 
+Within one credible set the posterior inclusion probabilities should add up to
+about the coverage, not to more than 1:
+
+```{r cs-pip-sum}
+sapply(cs$cs, function(i) sum(pip[i]))
+```
+
 Map the variant indices in a credible set back to variant IDs:
 
 ```{r cs-ids}
@@ -151,10 +237,14 @@ summstats$refsnp_id[cs$cs[[1]]]
 ## Running your own locus
 
 1. Subset your summary statistics and LD matrix to one locus.
-2. Make sure both are on the same effect-allele coding and in the same variant
-   order (see "Align statistics and LD").
-3. Choose `L`, the maximum number of causal signals, and a 2x2 `prior_variance`.
-4. Call `susie_rss_gxe()`, then `susie_get_pip()` and `susie_get_cs()`.
+2. Make sure the exposure is coded 0/1 and not centered, and that the LD matrix
+   is a signed correlation matrix on the same effect-allele coding as the
+   summary statistics (see "Requirements on the input").
+3. Put both in the same variant order (see "Align statistics and LD") and run
+   the checks in "Check the input".
+4. Choose `L`, the maximum number of causal signals, and a 2x2 `prior_variance`.
+5. Call `susie_rss_gxe()`, check convergence, then use `susie_get_pip()` and
+   `susie_get_cs()`.
 
 The package also exports `susie_suff_stat_gxe()`, which accepts sufficient
 statistics (`XtX`, `XtZ`, `ZtZ`, `Xty`, ...) directly; see `?susie_suff_stat_gxe`.
@@ -167,9 +257,52 @@ sessionInfo()
 
 ## Version
 
-The current version is 0.1.1 (Oct 3, 2026).
+The current version is 0.2.0 (Oct 3, 2026).
 
 ### Change log
+
+**Version 0.2.0 (Oct 3, 2026)**
+
+This version fixes errors that affect results. Analyses run with earlier
+versions should be rerun.
+
+Bug fixes that change results:
+
+- Each single-effect update now uses the residual, after the other effects are
+  removed, to compute the Bayes factors, the inclusion probabilities and the
+  prior update. Earlier versions used the marginal estimates for every effect,
+  so all `L` effects were identical. As a result, at most one credible set was
+  returned per locus, the algorithm always stopped at the second iteration, and
+  the posterior inclusion probabilities were inflated to
+  1 - (1 - alpha)^L. The credible set returned by earlier versions is the
+  single-signal (`L = 1`) credible set. We thank Yihe Yang, Feng Yan and Josée
+  Dupuis for reporting this.
+- The log Bayes factor of the last variant in a locus is no longer set to zero
+  on every update.
+- Effects whose prior variance is estimated as zero are now dropped when
+  credible sets are built.
+
+Input checks and unsupported options:
+
+- `susie_rss_gxe()` stops if any `covhat` is zero or positive. The package
+  supports an uncentered 0/1 exposure only.
+- `estimate_residual_variance = TRUE`, `estimate_prior_method = "EM"`, `s_init`
+  and `refine = TRUE` now stop with a message instead of calling undefined
+  functions.
+- With more than one effect, the LD matrix must be a signed correlation matrix.
+
+Other changes:
+
+- Convergence is declared on the objective (ELBO) by default, as in susieR.
+  The previous criterion is available with `convergence_method = "pip"`. A
+  warning is given if the objective decreases.
+- `prior_variance` can be a single 2x2 matrix, so the default call works.
+- The log Bayes factors are computed in closed form for all variants at once,
+  which makes `estimate_prior_variance = TRUE` much faster.
+- Fixed an error on the second iteration with `estimate_prior_variance = TRUE`
+  when an effect's prior variance had been set to zero.
+- The iteration message is printed only when `verbose = TRUE`.
+- `track_fit = TRUE` now works.
 
 **Version 0.1.1 (Oct 3, 2026)**
 

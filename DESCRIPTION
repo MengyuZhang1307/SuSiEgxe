@@ -1,7 +1,7 @@
 Package: SuSiEgxe
 Type: Package
 Title: SuSiE for 2df Joint Test in GEI Meta-Analysis with Binary Exposure
-Version: 0.1.0
+Version: 0.2.0
 Author: Mengyu Zhang
 Maintainer: Mengyu Zhang <mengyu.zhang@uth.tmc.edu>
 Description: This R package describe a fine-mapping method using summary statistics from the 2df joint test within the SuSiE framework. It improves the use of summary statistics from genome-wide meta-analysis to pinpoint variants that genuinely affect traits or diseases, while accounting for interactions with binary environmental factors.

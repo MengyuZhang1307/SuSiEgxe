@@ -22,7 +22,7 @@ There is an example data in `inst` folder. Instruction to run on data and expect
 
 ## Version
 
-The current version is 0.1.1 (Oct 3, 2026). See the vignette (`vignette("SuSiEgxe")`) for the change log.
+The current version is 0.2.0 (Oct 3, 2026). See the vignette (`vignette("SuSiEgxe")`) for the change log.
 
 ## License
 

@@ -25,8 +25,11 @@ init_setup_gxe = function (n, p, L, scaled_prior_variance, residual_variance,
     L = p
 
   if (L > 0) {
-    if(!is.list(scaled_prior_variance))
-      stop("When L > 0, prior_variance should be a list")
+    if (is.matrix(scaled_prior_variance))
+      scaled_prior_variance = replicate(L, scaled_prior_variance, simplify = FALSE)
+    if (!is.list(scaled_prior_variance) || length(scaled_prior_variance) != L ||
+        !all(sapply(scaled_prior_variance, function(x) is.matrix(x) && all(dim(x) == 2))))
+      stop("prior_variance should be a 2 x 2 matrix, or a list of L 2 x 2 matrices")
     v = lapply(scaled_prior_variance, function(x) x * varY)
   } else {v = scaled_prior_variance*varY}
 

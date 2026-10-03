@@ -176,7 +176,7 @@ susie_get_cs = function (res, X = NULL, Xcorr = NULL, coverage = 0.95,
   null_index = 0
   include_idx = rep(TRUE,nrow(res$alpha))
   if (!is.null(res$null_index)) null_index = res$null_index
-  if (is.numeric(res$V)) include_idx = unlist(lapply(res$V, function(x) {x[1,1] > 1e-9 & x[2,2] > 1e-9}))
+    if (is.numeric(unlist(res$V))) include_idx = unlist(lapply(res$V, function(x) {x[1,1] > 1e-9 & x[2,2] > 1e-9}))
   # L x P binary matrix.
   status = in_CS(res$alpha,coverage)
 

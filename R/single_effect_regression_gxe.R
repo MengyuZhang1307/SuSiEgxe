@@ -3,7 +3,8 @@ optimize_prior_variance = function (optimize_V, betahat, shat2, prior_weights,
                                     alpha = NULL, post_mean2 = NULL,
                                     V_init = NULL, check_null_threshold = 0) { # V_init is a matrix
   V = unlist(V_init)
-  lV_repara = c(log(V[1]), log(V[4]), V[2]/sqrt(V[1]*V[4]))
+  lV_repara = if (V[1] <= 0 || V[4] <= 0) c(-Inf, -Inf, 0) else
+    c(log(V[1]), log(V[4]), V[2]/sqrt(V[1]*V[4]))
   p = length(betahat)/2
   if (optimize_V != "simple") {
     if(optimize_V == "optim") {
@@ -79,19 +80,28 @@ loglik = function (lV, betahat, shat2, prior_weights) { # V is a vector
   #log(bf) for each SNP
   #lbf = dnorm(betahat,0,sqrt(V + shat2),log = TRUE) -
   #      dnorm(betahat,0,sqrt(shat2),log = TRUE)
-  lbf = mapply(function(i) {
-            mvtnorm::dmvnorm(betahat[c(i, i+p)], mean = rep(0,2), sigma = as.matrix((V+shat2[c(i, i+p), c(i, i+p)])), log = TRUE) -
-    	    mvtnorm::dmvnorm(betahat[c(i, i+p)], mean = rep(0,2), sigma = as.matrix((shat2[c(i, i+p), c(i, i+p)])), log = TRUE)
-   	  }, 1:p)
+  # lbf = mapply(function(i) {
+  #           mvtnorm::dmvnorm(betahat[c(i, i+p)], mean = rep(0,2), sigma = as.matrix((V+shat2[c(i, i+p), c(i, i+p)])), log = TRUE) -
+  #   	    mvtnorm::dmvnorm(betahat[c(i, i+p)], mean = rep(0,2), sigma = as.matrix((shat2[c(i, i+p), c(i, i+p)])), log = TRUE)
+  #  	  }, 1:p)
+  # lpo = lbf + log(prior_weights + sqrt(.Machine$double.eps))
+
+  # # Deal with special case of infinite shat2 (e.g., happens if X does
+  # # not vary).
+  # infinite_ind = unique(c(is.infinite(diag(shat2[1:p, 1:p])),
+	# 		  is.infinite(diag(shat2[1:p, (p+1):(2*p)])),
+	# 		  is.infinite(diag(shat2[(p+1):(2*p), (p+1):(2*p)]))))
+  # lbf[c(infinite_ind, infinite_ind+p)] = 0
+  # lpo[c(infinite_ind, infinite_ind+p)] = 0
+  
+  sv = shat2_blocks(shat2, p)
+  lbf = lbf_2df(betahat, sv$a, sv$b, sv$c, V)
   lpo = lbf + log(prior_weights + sqrt(.Machine$double.eps))
 
   # Deal with special case of infinite shat2 (e.g., happens if X does
   # not vary).
-  infinite_ind = unique(c(is.infinite(diag(shat2[1:p, 1:p])),
-			  is.infinite(diag(shat2[1:p, (p+1):(2*p)])),
-			  is.infinite(diag(shat2[(p+1):(2*p), (p+1):(2*p)]))))
-  lbf[c(infinite_ind, infinite_ind+p)] = 0
-  lpo[c(infinite_ind, infinite_ind+p)] = 0
+  inf_ind = which(is.infinite(sv$a) | is.infinite(sv$b) | is.infinite(sv$c))
+  if (length(inf_ind) > 0) { lbf[inf_ind] = 0; lpo[inf_ind] = 0 }
 
   maxlpo = max(lpo)
   w_weighted = exp(lpo - maxlpo)
@@ -142,4 +152,26 @@ lbf = function (V, shat2, T2) {
   l = 0.5*log(shat2/(V + shat2)) + 0.5*T2*(V/(V + shat2))
   l[is.nan(l)] = 0
   return(l)
+}
+
+
+# Per-SNP 2x2 blocks of shat2 as three p-vectors (a = var(bG), b = cov, c = var(bGxE)).
+# Accepts either a list(a, b, c) or the 2p x 2p block-diagonal matrix.
+shat2_blocks = function (shat2, p) {
+  if (is.list(shat2)) return(shat2)
+  d = Matrix::diag(shat2)
+  list(a = d[1:p], b = as.vector(shat2[cbind(1:p, p + (1:p))]), c = d[p + (1:p)])
+}
+
+# Vectorised log Bayes factor of the 2-df SER for all p SNPs at once:
+#   log N2(bhat_j; 0, S_j + V) - log N2(bhat_j; 0, S_j),  S_j = [[a_j, b_j], [b_j, c_j]]
+lbf_2df = function (betahat, a, b, c, V) {
+  p  = length(a)
+  b1 = betahat[1:p]; b2 = betahat[p + (1:p)]
+  detS = a*c - b^2
+  qS   = (c*b1^2 - 2*b*b1*b2 + a*b2^2) / detS
+  ta = a + V[1,1]; tb = b + V[1,2]; tc = c + V[2,2]
+  detT = ta*tc - tb^2
+  qT   = (tc*b1^2 - 2*tb*b1*b2 + ta*b2^2) / detT
+  0.5*(log(detS) - log(detT)) + 0.5*(qS - qT)
 }

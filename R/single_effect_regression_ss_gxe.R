@@ -18,8 +18,9 @@ single_effect_regression_ss_gxe =
   optimize_V = match.arg(optimize_V)
   #betahat = (1/dXtX) * Xty
   p = length(XtX_inv$dXtX)
-  #betahat = cbind(XtX_inv$Kty[1:p],XtX_inv$Kty[(p+1):(2*p)])
-  betahat = XtX_inv$Kty
+
+  betahat = c(XtX_inv$dXtX * Xty[1:p] + XtX_inv$dXtZ * Xty[p+(1:p)],
+              XtX_inv$dXtZ * Xty[1:p] + XtX_inv$dZtZ * Xty[p+(1:p)])
   #shat2 = residual_variance/dXtX
   #shat2_tmp = residual_variance*cbind(XtX_inv$dXtX, XtX_inv$dXtZ, XtX_inv$dXtZ, XtX_inv$dZtZ)
   #shat2_list = lapply(1:p, function(i) {matrix(shat2_tmp[i, ], nrow = 2, byrow = TRUE)})
@@ -30,7 +31,10 @@ single_effect_regression_ss_gxe =
     prior_weights = rep(1/p,p)
 
   if (optimize_V != "EM" && optimize_V != "none")
-    V = optimize_prior_variance(optimize_V,betahat,shat2_mat,prior_weights,
+    V = optimize_prior_variance(optimize_V,betahat,
+                                list(a = residual_variance*XtX_inv$dXtX,
+                                     b = residual_variance*XtX_inv$dXtZ,
+                                     c = residual_variance*XtX_inv$dZtZ),prior_weights,
                                 alpha = NULL,post_mean2 = NULL,V_init = V,
                                 check_null_threshold = check_null_threshold)
 
@@ -39,19 +43,19 @@ single_effect_regression_ss_gxe =
   #      dnorm(betahat,0,sqrt(shat2),log = TRUE)
   # Load necessary libraries
 
-  lbf = mapply(function(i) {
-            mvtnorm::dmvnorm(betahat[c(i, i+p)], mean = rep(0,2), sigma = as.matrix((V+shat2_mat[c(i, i+p), c(i, i+p)])), log = TRUE) -
-    	    mvtnorm::dmvnorm(betahat[c(i, i+p)], mean = rep(0,2), sigma = as.matrix((shat2_mat[c(i, i+p), c(i, i+p)])), log = TRUE)
-  	  }, 1:p)
+  lbf = lbf_2df(betahat, residual_variance*XtX_inv$dXtX, residual_variance*XtX_inv$dXtZ,
+                residual_variance*XtX_inv$dZtZ, V)
   lpo = lbf + log(prior_weights + sqrt(.Machine$double.eps))
 
   # Deal with special case of infinite shat2 (e.g., happens if X does
   # not vary).
-  infinite_ind = unique(c(is.infinite(residual_variance*XtX_inv$dXtX),
-			  is.infinite(residual_variance*XtX_inv$dXtZ),
-			  is.infinite(residual_variance*XtX_inv$dZtZ)))
-  lbf[c(infinite_ind, infinite_ind+p)] = 0
-  lpo[c(infinite_ind, infinite_ind+p)] = 0
+  infinite_ind = which(is.infinite(residual_variance*XtX_inv$dXtX) |
+                       is.infinite(residual_variance*XtX_inv$dXtZ) |
+                       is.infinite(residual_variance*XtX_inv$dZtZ))
+  if (length(infinite_ind) > 0) {
+    lbf[infinite_ind] = 0
+    lpo[infinite_ind] = 0
+  }
   maxlpo = max(lpo)
 
   # w is proportional to

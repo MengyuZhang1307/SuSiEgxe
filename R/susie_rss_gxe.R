@@ -126,15 +126,20 @@ susie_rss_gxe = function (z, R, n, bhat, bhat_gxe, shat, shat_gxe, covhat = NULL
                       prior_variance = matrix(c(50, 1, 1, 50), ncol = 2),
                       check_prior = TRUE, ...) {
 
+  # if (estimate_residual_variance)
+  #   warning_message("For estimate_residual_variance = TRUE, please check ",
+  #                   "that R is the \"in-sample\" LD matrix; that is, the ",
+  #                   "correlation matrix obtained using the exact same data ",
+  #                   "matrix X that was used for the other summary ",
+  #                   "statistics. Also note, when covariates are included in ",
+  #                   "the univariate regressions that produced the summary ",
+  #                   "statistics, also consider removing these effects from ",
+  #                   "X before computing R.",style = "hint")
+
   if (estimate_residual_variance)
-    warning_message("For estimate_residual_variance = TRUE, please check ",
-                    "that R is the \"in-sample\" LD matrix; that is, the ",
-                    "correlation matrix obtained using the exact same data ",
-                    "matrix X that was used for the other summary ",
-                    "statistics. Also note, when covariates are included in ",
-                    "the univariate regressions that produced the summary ",
-                    "statistics, also consider removing these effects from ",
-                    "X before computing R.",style = "hint")
+    stop("estimate_residual_variance = TRUE is not supported in susie_rss_gxe: ",
+         "the residual variance is fixed at 1 and absorbed into the summary ",
+         "statistics. Please use estimate_residual_variance = FALSE.")
 
   # Check input R.
   if (missing(z))
@@ -187,6 +192,10 @@ susie_rss_gxe = function (z, R, n, bhat, bhat_gxe, shat, shat_gxe, covhat = NULL
   #  R = muffled_cov2cor((1-z_ld_weight)*R + z_ld_weight*tcrossprod(z))
   #  R = (R + t(R))/2
   #}
+
+  if (any(covhat >= 0))
+    stop("SuSiEgxe currently supports only an uncentered 0/1 exposure (", sum(covhat >= 0), " of ",
+         length(covhat), " SNPs have covhat >= 0).")
 
   dS_inv = S_inverse_crossprod(shat^2, covhat, shat_gxe^2, c(bhat, bhat_gxe)) #block diag(S_inv), M_inv, and crossprod
 
