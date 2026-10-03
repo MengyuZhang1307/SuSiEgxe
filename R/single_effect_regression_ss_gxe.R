@@ -4,6 +4,7 @@
 #'
 #' @param XtX_inv a return object of function S_inverse_crossprod
 #'
+#' @importFrom Matrix Diagonal
 #' @importFrom stats uniroot
 #' @importFrom stats optim
 #' @importFrom mvtnorm dmvnorm

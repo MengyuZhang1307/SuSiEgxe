@@ -2,3 +2,13 @@
 .Rhistory
 .RData
 .Ruserdata
+/doc/
+/Meta/
+doc
+Meta
+vignettes/*.html
+vignettes/*.R
+.Rdata
+.httr-oauth
+.DS_Store
+.quarto

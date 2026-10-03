@@ -1,0 +1,155 @@
+---
+title: "Fine-mapping a 2df joint test with SuSiEgxe"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Fine-mapping a 2df joint test with SuSiEgxe}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 6, fig.height = 3.5)
+```
+
+## Overview
+
+SuSiEgxe extends the SuSiE ("sum of single effects") fine-mapping model to
+summary statistics from the **2df joint test** in gene-by-environment (GxE)
+interaction meta-analysis with a **binary exposure**. For each variant it uses
+the main-effect estimate, the interaction-effect estimate, their standard
+errors, and the covariance between the two estimates, together with an LD
+matrix.
+
+This vignette walks through one complete analysis using the example data that
+ships with the package: diastolic blood pressure (DBP) and current smoking in an
+East Asian ancestry (EAS) meta-analysis, locus `2:26681997-26710019`.
+
+```{r setup}
+library(SuSiEgxe)
+```
+
+## Input data
+
+Two files are needed: a table of summary statistics and an LD matrix whose row
+and column names are variant IDs.
+
+```{r data}
+sumstat_file <- system.file("extdata",
+  "EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.rsid.txt",
+  package = "SuSiEgxe")
+ld_file <- system.file("extdata",
+  "EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.LD_mat.txt",
+  package = "SuSiEgxe")
+
+summstats <- read.delim(sumstat_file, stringsAsFactors = FALSE)
+ld_matrix <- as.matrix(read.table(ld_file, header = TRUE))
+
+dim(summstats)
+dim(ld_matrix)
+```
+
+The columns used by the model are:
+
+| Column       | Meaning                                              |
+|--------------|------------------------------------------------------|
+| `Effect`     | Main (genetic) effect estimate                       |
+| `StdErr`     | Standard error of the main effect                    |
+| `IntEffect`  | Interaction (GxE) effect estimate                    |
+| `IntStdErr`  | Standard error of the interaction effect             |
+| `IntCov`     | Covariance of the main and interaction estimates     |
+| `refsnp_id`  | Variant ID, matching the LD matrix names             |
+
+## Align statistics and LD
+
+The summary statistics and the LD matrix must list the same variants in the
+same order.
+
+```{r align}
+summstats <- summstats[summstats$refsnp_id %in% colnames(ld_matrix), ]
+idx <- match(summstats$refsnp_id, colnames(ld_matrix))
+R <- ld_matrix[idx, idx]
+
+stopifnot(nrow(summstats) == nrow(R))
+dim(R)
+```
+
+## Run the model
+
+`susie_rss_gxe()` takes the five summary-statistic vectors and `R`. The prior
+for each single effect is a 2x2 matrix: the prior variance of the main effect
+and of the interaction effect on the diagonal, and their prior covariance off
+the diagonal. Here we use the same prior for each of `L = 5` effects and keep it
+fixed.
+
+```{r fit}
+L <- 5
+prior_var <- replicate(L, matrix(c(10, -0.02, -0.02, 10), ncol = 2),
+                       simplify = FALSE)
+
+fit <- susie_rss_gxe(
+  R = R,
+  bhat = summstats$Effect,
+  bhat_gxe = summstats$IntEffect,
+  shat = summstats$StdErr,
+  shat_gxe = summstats$IntStdErr,
+  covhat = summstats$IntCov,
+  z_ld_weight = 0,
+  estimate_residual_variance = FALSE,
+  prior_variance = prior_var,
+  estimate_prior_variance = FALSE,
+  check_prior = TRUE,
+  L = L,
+  max_iter = 600,
+  min_abs_corr = 0,
+  verbose = FALSE
+)
+
+fit$converged
+fit$niter
+```
+
+No sample size `n` is supplied, so the model assumes a large sample and small
+effects (the package prints a warning to that effect).
+
+## Posterior inclusion probabilities
+
+```{r pip}
+pip <- susie_get_pip(fit)
+names(pip) <- summstats$refsnp_id
+head(sort(pip, decreasing = TRUE), 8)
+```
+
+```{r pip-plot}
+plot(pip, pch = 16, xlab = "Variant index", ylab = "PIP",
+     main = "Posterior inclusion probabilities", ylim = c(0, 1))
+```
+
+## Credible sets
+
+`susie_get_cs()` extracts credible sets. Passing the LD matrix through `Xcorr`
+lets it compute the purity of each set.
+
+```{r cs}
+cs <- susie_get_cs(fit, Xcorr = R, coverage = 0.95, min_abs_corr = 0)
+
+cs$cs
+cs$purity
+cs$coverage
+```
+
+Map the variant indices in a credible set back to variant IDs:
+
+```{r cs-ids}
+summstats$refsnp_id[cs$cs[[1]]]
+```
+
+## Running your own locus
+
+1. Subset your summary statistics and LD matrix to one locus.
+2. Make sure both are on the same effect-allele coding and in the same variant
+   order (see "Align statistics and LD").
+3. Choose `L`, the maximum number of causal signals, and a 2x2 `prior_variance`.
+4. Call `susie_rss_gxe()`, then `susie_get_pip()` and `susie_get_cs()`.
+
+The package also exports `susie_suff_stat_gxe()`, which accepts sufficient
+statistics (`XtX`, `XtZ`, `ZtZ`, `Xty`, ...) directly; see `?susie_suff_stat_gxe`.
