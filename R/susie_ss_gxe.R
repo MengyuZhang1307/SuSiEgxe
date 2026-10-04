@@ -290,7 +290,7 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
   #Sys.time()
   for (i in 1:max_iter) {
     if (verbose)
-      {cat(paste0("iter: ", i))}
+      {cat(paste0("iter: ", i, "\n"))}
     if (track_fit)
       tracking[[i]] = susie_slim(s)
     system.time({s = update_each_effect_ss_gxe(KtK,KtK_inv,Xty,s,estimate_prior_variance,
@@ -305,8 +305,7 @@ susie_suff_stat_gxe = function (XtX, XtZ, ZtZ, Xty, yty, n,
     pip = susie_get_pip(s,prune_by_cs = FALSE,prior_tol = prior_tol)
     max_pip[i+1] = max(abs(pip-s$pip_tmp))
     if (verbose) # Need KL
-      {print(paste0("objective: ",get_objective_ss_gxe(KtK,Xty,s,yty,n)))
-       print(paste0("Max pip difference:", max_pip[i+1]))}
+      {cat(paste0("objective: ",get_objective_ss_gxe(KtK,Xty,s,yty,n), "\n"))}
 
     # Compute objective before updating residual variance because part
     # of the objective s$kl has already been computed under the
