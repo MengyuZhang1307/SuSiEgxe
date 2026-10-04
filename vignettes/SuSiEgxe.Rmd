@@ -270,17 +270,9 @@ Bug fixes that change results:
 
 - Each single-effect update now uses the residual, after the other effects are
   removed, to compute the Bayes factors, the inclusion probabilities and the
-  prior update. Earlier versions used the marginal estimates for every effect,
-  so all `L` effects were identical. As a result, at most one credible set was
-  returned per locus, the algorithm always stopped at the second iteration, and
-  the posterior inclusion probabilities were inflated to
-  1 - (1 - alpha)^L. The credible set returned by earlier versions is the
+  prior update. The credible set returned by earlier versions is the
   single-signal (`L = 1`) credible set. We thank Yihe Yang, Feng Yan and Josée
   Dupuis for reporting this.
-- The log Bayes factor of the last variant in a locus is no longer set to zero
-  on every update.
-- Effects whose prior variance is estimated as zero are now dropped when
-  credible sets are built.
 
 Input checks and unsupported options:
 
@@ -289,7 +281,6 @@ Input checks and unsupported options:
 - `estimate_residual_variance = TRUE`, `estimate_prior_method = "EM"`, `s_init`
   and `refine = TRUE` now stop with a message instead of calling undefined
   functions.
-- With more than one effect, the LD matrix must be a signed correlation matrix.
 
 Other changes:
 
@@ -299,9 +290,6 @@ Other changes:
 - `prior_variance` can be a single 2x2 matrix, so the default call works.
 - The log Bayes factors are computed in closed form for all variants at once,
   which makes `estimate_prior_variance = TRUE` much faster.
-- Fixed an error on the second iteration with `estimate_prior_variance = TRUE`
-  when an effect's prior variance had been set to zero.
-- The iteration message is printed only when `verbose = TRUE`.
 - `track_fit = TRUE` now works.
 
 **Version 0.1.1 (Oct 3, 2026)**
@@ -309,12 +297,9 @@ Other changes:
 - Added this vignette.
 - Fixed a missing import of `Matrix::Diagonal()`. The model no longer requires
   `library(Matrix)` to be attached first.
-- Added `knitr` and `rmarkdown` to `Suggests` for building the vignette, and
-  removed the unused `LazyData` field.
 
 **Version 0.1.0 (Feb 18, 2025)**
 
 - First release. `susie_rss_gxe()` and `susie_suff_stat_gxe()` fine-map
   summary statistics from the 2df joint test in GEI meta-analysis with a binary
-  exposure. `susie_get_cs()` and `susie_get_pip()` extract credible sets and
-  posterior inclusion probabilities.
+  exposure.
