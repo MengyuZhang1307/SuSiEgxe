@@ -24,8 +24,8 @@ matrix. Up to `L` independent signals can be fine-mapped in one locus, and each
 signal gets its own credible set.
 
 This vignette walks through one complete analysis using the example data that
-ships with the package: diastolic blood pressure (DBP) and current smoking in an
-East Asian ancestry (EAS) meta-analysis, locus `2:26681997-26710019`.
+ships with the package: a simulated locus of 300 variants with three causal
+variants, each with an effect only in the exposed group.
 
 This vignette was built with SuSiEgxe version `r packageVersion("SuSiEgxe")`.
 See the change log at the end for what changed between versions. Results
@@ -62,34 +62,36 @@ at.
 
 ## Input data
 
-Two files are needed: a table of summary statistics and an LD matrix whose row
-and column names are variant IDs.
+The example is stored as one R object with the summary statistics, the LD
+matrix, and the true causal variants of the simulation.
 
 ```{r data}
-sumstat_file <- system.file("extdata",
-  "EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.rsid.txt",
-  package = "SuSiEgxe")
-ld_file <- system.file("extdata",
-  "EAS.DBP.CURSMK.COMBINED.2df.2_26681997_26710019.LD_mat.txt",
-  package = "SuSiEgxe")
+example_file <- system.file("example", "int_k3_example.rds", package = "SuSiEgxe")
+dat <- readRDS(example_file)
 
-summstats <- read.delim(sumstat_file, stringsAsFactors = FALSE)
-ld_matrix <- as.matrix(read.table(ld_file, header = TRUE))
+dat$description
+
+summstats <- dat$sumstats
+ld_matrix <- dat$R
 
 dim(summstats)
 dim(ld_matrix)
+head(summstats[, c("snp", "bhat", "shat", "bhat_gxe", "shat_gxe", "covhat")], 3)
 ```
 
 The columns used by the model are:
 
 | Column       | Meaning                                              |
 |--------------|------------------------------------------------------|
-| `Effect`     | Main (genetic) effect estimate                       |
-| `StdErr`     | Standard error of the main effect                    |
-| `IntEffect`  | Interaction (GxE) effect estimate                    |
-| `IntStdErr`  | Standard error of the interaction effect             |
-| `IntCov`     | Covariance of the main and interaction estimates     |
-| `refsnp_id`  | Variant ID, matching the LD matrix names             |
+| `bhat`       | Main (genetic) effect estimate                       |
+| `shat`       | Standard error of the main effect                    |
+| `bhat_gxe`   | Interaction (GxE) effect estimate                    |
+| `shat_gxe`   | Standard error of the interaction effect             |
+| `covhat`     | Covariance of the main and interaction estimates     |
+| `snp`        | Variant ID, matching the LD matrix names             |
+
+For your own data you need the same two inputs: a table with these six
+quantities, and an LD matrix whose row and column names are variant IDs.
 
 ## Align statistics and LD
 
@@ -97,8 +99,8 @@ The summary statistics and the LD matrix must list the same variants in the
 same order.
 
 ```{r align}
-summstats <- summstats[summstats$refsnp_id %in% colnames(ld_matrix), ]
-idx <- match(summstats$refsnp_id, colnames(ld_matrix))
+summstats <- summstats[summstats$snp %in% colnames(ld_matrix), ]
+idx <- match(summstats$snp, colnames(ld_matrix))
 R <- ld_matrix[idx, idx]
 
 stopifnot(nrow(summstats) == nrow(R))
@@ -111,15 +113,13 @@ Check the two requirements that can be read off the data.
 
 ```{r check-input}
 # 0/1 exposure: the covariance must be negative at every variant.
-all(summstats$IntCov < 0)
+all(summstats$covhat < 0)
 
 # Under 0/1 coding the covariance is close to minus the main-effect variance,
 # so this ratio should be close to 1.
-summary(-summstats$IntCov / summstats$StdErr^2)
+summary(-summstats$covhat / summstats$shat^2)
 
-# Signed LD: a signed correlation matrix has negative entries. A minimum of 0
-# means the matrix is r-squared or |r| and must be replaced before fitting
-# more than one signal.
+# Signed LD: a signed correlation matrix has negative entries.
 range(R[upper.tri(R)])
 ```
 
@@ -138,11 +138,11 @@ prior_var <- matrix(c(10, -0.02, -0.02, 10), ncol = 2)
 
 fit <- susie_rss_gxe(
   R = R,
-  bhat = summstats$Effect,
-  bhat_gxe = summstats$IntEffect,
-  shat = summstats$StdErr,
-  shat_gxe = summstats$IntStdErr,
-  covhat = summstats$IntCov,
+  bhat = summstats$bhat,
+  bhat_gxe = summstats$bhat_gxe,
+  shat = summstats$shat,
+  shat_gxe = summstats$shat_gxe,
+  covhat = summstats$covhat,
   z_ld_weight = 0,
   estimate_residual_variance = FALSE,
   prior_variance = prior_var,
@@ -150,23 +150,25 @@ fit <- susie_rss_gxe(
   check_prior = TRUE,
   L = L,
   max_iter = 600,
-  min_abs_corr = 0,
+  min_abs_corr = 0.5,
   verbose = FALSE
 )
 ```
 
 Notes on the arguments:
 
-- `L` is the maximum number of signals. Effects that find no signal do not
-  produce a credible set. Setting `L = 1` gives single-signal fine-mapping,
-  which does not use the off-diagonal entries of `R`.
-- `estimate_residual_variance` must be `FALSE`. The residual variance is fixed
-  and absorbed into the summary statistics, and the function stops if it is set
+- `L` is the maximum number of signals. An effect that finds no signal gives a
+  large, low-purity set, which is removed by the purity filter
+  (`min_abs_corr = 0.5`, the default). With `min_abs_corr = 0` these sets are
+  kept. Setting `L = 1` gives single-signal fine-mapping, which does not use
+  the off-diagonal entries of `R`.
+- Only `estimate_residual_variance=FALSE` is supported in current version (v0.2.0). The function stops if it is set
   to `TRUE`.
 - `estimate_prior_variance = TRUE` estimates the 2x2 prior of each effect from
   the data instead of keeping it fixed.
-- No sample size `n` is supplied, so the model assumes a large sample and small
-  effects (the package prints a warning to that effect).
+- The sample size `n` is not used and must not be supplied. The model assumes a
+  large sample and small effects, and the package prints a message to that
+  effect.
 
 ## Check convergence
 
@@ -199,7 +201,7 @@ different sample sizes within the locus.
 
 ```{r pip}
 pip <- susie_get_pip(fit)
-names(pip) <- summstats$refsnp_id
+names(pip) <- summstats$snp
 head(sort(pip, decreasing = TRUE), 8)
 ```
 
@@ -214,25 +216,41 @@ plot(pip, pch = 16, xlab = "Variant index", ylab = "PIP",
 lets it compute the purity of each set.
 
 ```{r cs}
-cs <- susie_get_cs(fit, Xcorr = R, coverage = 0.95, min_abs_corr = 0)
+cs <- susie_get_cs(fit, Xcorr = R, coverage = 0.95, min_abs_corr = 0.5)
 
 cs$cs
 cs$purity
 cs$coverage
 ```
 
-Within one credible set the posterior inclusion probabilities should add up to
-about the coverage, not to more than 1:
+Within a credible set that passes the purity filter, the posterior inclusion
+probabilities should add up to about the coverage, not to more than 1:
 
 ```{r cs-pip-sum}
 sapply(cs$cs, function(i) sum(pip[i]))
 ```
 
-Map the variant indices in a credible set back to variant IDs:
+Map the variant indices in each credible set back to variant IDs:
 
 ```{r cs-ids}
-summstats$refsnp_id[cs$cs[[1]]]
+lapply(cs$cs, function(i) summstats$snp[i])
 ```
+
+Because the example is simulated, the true causal variants are known. Each
+should fall in a different credible set:
+
+```{r cs-truth}
+dat$causal[, c("snp", "position", "bG", "bGxE")]
+
+sapply(dat$causal$position, function(j) {
+  k <- which(sapply(cs$cs, function(i) j %in% i))
+  if (length(k)) names(cs$cs)[k] else NA
+})
+```
+
+A longer script that also compares the result with marginal SuSiE and draws a
+locus plot is installed with the package; see
+`system.file("example", "int_k3_example.R", package = "SuSiEgxe")`.
 
 ## Running your own locus
 
@@ -271,8 +289,8 @@ Bug fixes that change results:
 - Each single-effect update now uses the residual, after the other effects are
   removed, to compute the Bayes factors, the inclusion probabilities and the
   prior update. The credible set returned by earlier versions is the
-  single-signal (`L = 1`) credible set. We thank Yihe Yang, Feng Yan and Josée
-  Dupuis for reporting this.
+  single-signal (`L = 1`) credible set. We thank Josée
+  Dupuis, Feng Yan, and Yihe Yang for reporting this.
 
 Input checks and unsupported options:
 

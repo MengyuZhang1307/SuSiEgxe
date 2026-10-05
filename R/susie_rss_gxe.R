@@ -213,9 +213,8 @@ susie_rss_gxe = function (z, R, n, bhat, bhat_gxe, shat, shat_gxe, covhat = NULL
     # The choice of n=2, yty=1 is mostly arbitrary except in that it
     # ensures var(y) = yty/(n-1) = 1, and because of this
     # scaled_prior_variance = prior_variance.
-    warning_message("Providing the sample size (n), or even a rough estimate of n, ",
-            "is highly recommended. Without n, the implicit assumption is ",
-            "n is large (Inf) and the effect sizes are small (close to zero).")
+    warning_message("The sample size n is not used. The model assumes a large ",
+                  "sample and small effects.", style = "hint")
     s = susie_suff_stat_gxe(XtX = XtX, XtZ = XtZ, ZtZ = ZtZ, Xty = dS_inv$Kty,n = 2,yty = 1,
                         scaled_prior_variance = prior_variance,
                         estimate_residual_variance = estimate_residual_variance,

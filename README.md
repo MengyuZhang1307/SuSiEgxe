@@ -18,7 +18,7 @@ devtools::install_github("MengyuZhang1307/SuSiEgxe", ref = "main")
 ```
 ## Example data
 
-There is an example data in `inst` folder. Instruction to run on data and expected output can be found in `example/scripts`.
+A simulated locus (`inst/example/int_k3_example.rds`) and a script that runs it (`inst/example/int_k3_example.R`) are included. See the vignette (`vignette("SuSiEgxe")`) for a walk-through.
 
 ## Version
 
